@@ -419,7 +419,7 @@ class Communicate:
                                 "We received a binary message, but it is missing the header length."
                             )
 
-                        # See: https://github.com/microsoft/cognitive-services-speech-sdk-js/blob/d071d11d1e9f34d6f79d0ab6114c90eecb02ba1f/src/common.speech/WebsocketMessageFormatter.ts#L46
+                        # See: https://github.com/microsoft/cognitive-services-speech-sdk-js/blob/d071d11/src/common.speech/WebsocketMessageFormatter.ts#L46
                         header_length = int.from_bytes(received.data[:2], "big")
                         if len(received.data) < header_length + 2:
                             raise UnexpectedResponse(
@@ -449,7 +449,6 @@ class Communicate:
         """
         Save the audio and metadata to the specified files.
         """
-        written_audio: bool = False
         metadata: Union[TextIOWrapper, ContextManager[None]] = (
             open(metadata_fname, "w", encoding="utf-8")
             if metadata_fname is not None
@@ -459,15 +458,9 @@ class Communicate:
             async for message in self.stream():
                 if message["type"] == "audio":
                     audio.write(message["data"])
-                    written_audio = True
                 elif (
                     isinstance(metadata, TextIOWrapper)
                     and message["type"] == "WordBoundary"
                 ):
                     json.dump(message, metadata)
                     metadata.write("\n")
-
-        if not written_audio:
-            raise NoAudioReceived(
-                "No audio was received from the service, so the file is empty."
-            )

@@ -36,6 +36,21 @@ async def _print_voices(*, proxy: str) -> None:
 
 async def _run_tts(args: Any) -> None:
     """Run TTS after parsing arguments from command line."""
+
+    try:
+        if sys.stdin.isatty() and sys.stdout.isatty() and not args.write_media:
+            print(
+                "Warning: TTS output will be written to the terminal. "
+                "Use --write-media to write to a file.\n"
+                "Press Ctrl+C to cancel the operation. "
+                "Press Enter to continue.",
+                file=sys.stderr,
+            )
+            input()
+    except KeyboardInterrupt:
+        print("\nOperation canceled.", file=sys.stderr)
+        return
+
     tts: Communicate = Communicate(
         args.text,
         args.voice,
@@ -62,7 +77,8 @@ async def _run_tts(args: Any) -> None:
         sub_file.write(subs.generate_subs(args.words_in_cue))
 
 
-async def _async_main() -> None:
+async def amain() -> None:
+    """Async main function"""
     parser = argparse.ArgumentParser(description="Microsoft Edge TTS")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-t", "--text", help="what TTS will say")
@@ -116,9 +132,11 @@ async def _async_main() -> None:
 
 def main() -> None:
     """Run the main function using asyncio."""
-    asyncio.get_event_loop().run_until_complete(_async_main())
-    asyncio.get_event_loop().close()
-
+    loop = asyncio.get_event_loop_policy().get_event_loop()
+    try:
+        loop.run_until_complete(amain())
+    finally:
+        loop.close()
 
 
 if __name__ == "__main__":
